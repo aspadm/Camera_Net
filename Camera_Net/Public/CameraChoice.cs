@@ -21,14 +21,14 @@ License along with this library. If not, see <http://www.gnu.org/licenses/>.
 
 #endregion
 
+using System.Collections.Generic;
+
 namespace Camera_NET
 {
     #region Using directives
 
     using System;
-    using System.Collections.Generic;
-
-    using DirectShowLib;
+    using Intel.RealSense;
 
     #endregion
 
@@ -54,7 +54,16 @@ namespace Camera_NET
         /// </summary>
         public void UpdateDeviceList()
         {
-            m_pCapDevices = new List<DsDevice>(DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice));
+            Context ctx = new Context();
+            DeviceList list = ctx.QueryDevices(); // Get a snapshot of currently connected devices
+            m_pCapDevices.Clear();
+
+            foreach (var dev in list)
+            {
+                m_pCapDevices.Add(new RSDevice { DevicePath = dev.Info.GetInfo(CameraInfo.SerialNumber) + ":RGB", Name = dev.Info.GetInfo(CameraInfo.Name) + " RGB" , isIR = false, isLeft = false});
+                m_pCapDevices.Add(new RSDevice { DevicePath = dev.Info.GetInfo(CameraInfo.SerialNumber) + ":IR_left", Name = dev.Info.GetInfo(CameraInfo.Name) + " IR L", isIR = true, isLeft = true});
+                m_pCapDevices.Add(new RSDevice { DevicePath = dev.Info.GetInfo(CameraInfo.SerialNumber) + ":IR_right", Name = dev.Info.GetInfo(CameraInfo.Name) + " IR R", isIR = true, isLeft = false});
+            }
         }
 
         /// <summary>
@@ -62,24 +71,13 @@ namespace Camera_NET
         /// </summary>
         /// <returns>List of available devices</returns>
         /// <seealso cref="UpdateDeviceList"/>
-        public List<DsDevice> Devices
-        {
-            get
-            {
-                return m_pCapDevices;
-            }
-        }
+        public List<RSDevice> Devices => m_pCapDevices;
 
         /// <summary>
         /// Disposes device list and devices in it.
         /// </summary>
         public void Dispose()
         {
-            foreach (DsDevice cam in m_pCapDevices)
-            {
-                cam.Dispose();
-            }
-
             m_pCapDevices.Clear();
         }
 
@@ -87,7 +85,7 @@ namespace Camera_NET
         /// Returns Camera by Name
         /// </summary>
         /// <returns>Camera device</returns>
-        public DsDevice GetCameraByName(string name)
+        public RSDevice GetCameraByName(string name)
         {
             return GetCameraByName(name, 0);
         }
@@ -98,18 +96,18 @@ namespace Camera_NET
         /// <param name="camera_name">Name of camera.</param>
         /// <param name="index_in_same_names">Index if there can be more than one camera with this name.</param>
         /// <returns>Camera device</returns>
-        public DsDevice GetCameraByName(string camera_name, int index_in_same_names)
+        public RSDevice GetCameraByName(string camera_name, int index_in_same_names)
         {
             if (string.IsNullOrEmpty(camera_name) || index_in_same_names < 0)
                 return null;
 
             int count_found = 0;
 
-            DsDevice first_with_the_same_name = null;
+            RSDevice first_with_the_same_name = null;
 
-            foreach (DsDevice cam in m_pCapDevices)
+            foreach (var cam in m_pCapDevices)
             {
-                if (0 == string.Compare(cam.Name, camera_name, true))
+                if (0 == string.Compare(cam.Name, camera_name, StringComparison.OrdinalIgnoreCase))
                 {
                     count_found++;
 
@@ -137,7 +135,7 @@ namespace Camera_NET
         /// </summary>
         /// <param name="cam">Camera to get index of.</param>
         /// <returns>Index of camera device</returns>
-        public int GetCameraIndexInDevices(DsDevice cam)
+        public int GetCameraIndexInDevices(RSDevice cam)
         {
             try
             {
@@ -148,22 +146,14 @@ namespace Camera_NET
                 if (cam == null)
                 {
                     return -1;
-
-                    //// select default camera
-                    //if ( m_pCapDevices && m_pCapDevices.Count >= 1 )
-                    //{
-                    //	cam_index = 0;
-                    //}
                 }
-                else
+
+                for (int i = 0; i < m_pCapDevices.Count; i++)
                 {
-                    for (int i = 0; i < m_pCapDevices.Count; i++)
+                    if (0 == string.CompareOrdinal(cam.DevicePath, m_pCapDevices[i].DevicePath))
                     {
-                        if (0 == string.Compare(cam.DevicePath, m_pCapDevices[i].DevicePath))
-                        {
-                            cam_index = i;
-                            break;
-                        }
+                        cam_index = i;
+                        break;
                     }
                 }
 
@@ -176,21 +166,21 @@ namespace Camera_NET
         }
 
         /// <summary>
-        /// Returns name of caerma from DsDevice
+        /// Returns name of camera from DsDevice
         /// </summary>
         /// <param name="camera">Camera to get name of.</param>
         /// <param name="camera_name">Name of camera.</param>
         /// <param name="index_in_same_names">Index if there can be more than one camera with this name.</param>
         /// <returns>True if found, False otherwise</returns>
-        public bool GetNameByCamera(DsDevice camera, out string camera_name, out int index_in_same_names)
+        public bool GetNameByCamera(RSDevice camera, out string camera_name, out int index_in_same_names)
         {
             UpdateDeviceList();
 
             int count_found_before = 0;
 
-            foreach (DsDevice cam in m_pCapDevices)
+            foreach (var cam in m_pCapDevices)
             {
-                if (0 == string.Compare(cam.DevicePath, camera.DevicePath))
+                if (0 == String.CompareOrdinal(cam.DevicePath, camera.DevicePath))
                 {
                     // found, we are ready to return result
                     index_in_same_names = count_found_before;
@@ -199,7 +189,7 @@ namespace Camera_NET
                     return true;
                 }
 
-                if (0 == string.Compare(cam.Name, camera.Name, true))
+                if (0 == String.Compare(cam.Name, camera.Name, StringComparison.OrdinalIgnoreCase))
                 {
                     count_found_before++;
                 }
@@ -219,7 +209,7 @@ namespace Camera_NET
         /// <summary>
         /// List of installed video devices
         /// </summary>
-        protected List<DsDevice> m_pCapDevices = new List<DsDevice>();
+        protected List<RSDevice> m_pCapDevices = new List<RSDevice>();
 
         #endregion // Private
 

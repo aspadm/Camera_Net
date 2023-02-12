@@ -32,7 +32,7 @@ using System.Runtime.CompilerServices;
 //
 
 [assembly: AssemblyTitle("Camera_NET")]
-[assembly: AssemblyDescription("Camera .NET wrapper for DirectShow")]
+[assembly: AssemblyDescription("Intel RealSense .NET wrapper partially compatible with Camera_NET")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyCopyright("GNU Lesser General Public License v3.0 or later")]

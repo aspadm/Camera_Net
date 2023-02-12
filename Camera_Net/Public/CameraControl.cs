@@ -27,14 +27,8 @@ namespace Camera_NET
 
     using System;
     using System.Drawing;
-    using System.Drawing.Imaging;
-    using System.Runtime.InteropServices;
-    using System.Diagnostics;
     using System.Windows.Forms;
     using System.Runtime.InteropServices.ComTypes;
-
-    // Use DirectShowLib (LGPL v2.1)
-    using DirectShowLib;
 
     #endregion
 
@@ -62,21 +56,18 @@ namespace Camera_NET
         /// <summary>
         /// Initializes camera, builds and runs graph for control.
         /// </summary>
-        /// <param name="moniker">Moniker (device identification) of camera.</param>
+        /// <param name="cam">RS (device identification) of camera.</param>
         /// <param name="resolution">Resolution of camera's output.</param>
-        public void SetCamera(IMoniker moniker, Resolution resolution)
+        public void SetCamera(RSDevice cam, Resolution resolution)
         {
             // Close current if it was opened
             CloseCamera();
 
-            if (moniker == null)
+            if (cam == null)
                 return;
 
             // Create camera object
             _Camera = new Camera();
-
-            if (!string.IsNullOrEmpty(_DirectShowLogFilepath))
-                _Camera.DirectShowLogFilepath = _DirectShowLogFilepath;
 
             // select resolution
             //ResolutionList resolutions = Camera.GetResolutionList(moniker);
@@ -87,7 +78,7 @@ namespace Camera_NET
             }
 
             // Initialize
-            _Camera.Initialize(this, moniker);
+            _Camera.Initialize(this, cam);
 
             // Build and Run graph
             _Camera.BuildGraph();
@@ -102,13 +93,11 @@ namespace Camera_NET
         /// </summary>
         public void CloseCamera()
         {
-            if (_Camera != null)
-            {
-                _Camera.StopGraph();
-                _Camera.CloseAll();
-                _Camera.Dispose();
-                _Camera = null;
-            }
+            if (_Camera == null) return;
+            _Camera.StopGraph();
+            _Camera.CloseAll();
+            _Camera.Dispose();
+            _Camera = null;
         }
 
         #endregion
@@ -121,30 +110,24 @@ namespace Camera_NET
         /// Gets  a value that determines whether or not a Camera object was created.
         /// </summary>
         /// <seealso cref="Camera"/>
-        public bool CameraCreated
-        {
-            get { return (_Camera != null); }
-        }
+        public bool CameraCreated => (_Camera != null);
 
         /// <summary>
         /// Gets a Camera object.
         /// </summary>
         /// <seealso cref="Camera"/>
-        public Camera Camera
-        {
-            get { return _Camera; }
-        }
+        public Camera Camera => _Camera;
 
         /// <summary>
         /// Gets a camera moniker (device identification).
         /// </summary> 
-        public IMoniker Moniker
+        public RSDevice Moniker
         {
             get
             {
                 _ThrowIfCameraWasNotCreated();
 
-                return _Camera.Moniker;
+                return _Camera.RSPath;
             }
         }
 
@@ -180,179 +163,7 @@ namespace Camera_NET
                 return _Camera.ResolutionListRGB;
             }
         }
-
-        /// <summary>
-        /// Gets or sets a value that determines whether or not the image mixer is enabled for camera output.
-        /// </summary>
-        /// <value>Set to true to enable image mixer for camera output, or false to disable.</value>
-        public bool MixerEnabled
-        {
-            get
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                return _Camera.MixerEnabled;
-            }
-            set
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                _Camera.MixerEnabled = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a GDI Alpha value.
-        /// </summary>
-        public float GDIAlphaValue
-        {
-            get
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                return _Camera.GDIAlphaValue;
-            }
-            set
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                _Camera.GDIAlphaValue = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets a size of video output.
-        /// </summary> 
-        /// <seealso cref="OutputVideoSizeChanged"/>
-        public Size OutputVideoSize
-        {
-            get
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                return _Camera.OutputVideoSize;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a RGB overlay bitmap used for GDI operations.
-        /// </summary>         
-        /// <seealso cref="GDIColorKey"/>
-        public Bitmap OverlayBitmap
-        {
-            get
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                return _Camera.OverlayBitmap;
-            }
-            set
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                _Camera.OverlayBitmap = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a color used as ColorKey for GDI operations.
-        /// </summary> 
-        /// <seealso cref="OverlayBitmap"/>
-        public Color GDIColorKey
-        {
-            get
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                return _Camera.GDIColorKey;
-            }
-            set
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                _Camera.GDIColorKey = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets a value that determines whether or not the crossbar is available for selected camera.
-        /// </summary> 
-        /// <seealso cref="VideoInput"/>
-        public bool CrossbarAvailable
-        {
-            get
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                return _Camera.CrossbarAvailable;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a video input of camera (via crossbar).
-        /// </summary> 
-        /// <seealso cref="CrossbarAvailable"/>
-        public VideoInput VideoInput
-        {
-            get
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                return _Camera.VideoInput;
-            }
-            set
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                _Camera.VideoInput = value;
-            }
-        }
-
-        /// <summary>
-        /// Log file path for directshow (used in BuildGraph).
-        /// </summary> 
-        /// <seealso cref="BuildGraph"/>
-        public string DirectShowLogFilepath
-        {
-            get
-            {
-                if (!CameraCreated)
-                    return _DirectShowLogFilepath;
-                else
-                    return _Camera.DirectShowLogFilepath;
-            }
-            set
-            {
-                _DirectShowLogFilepath = value;
-
-                if (CameraCreated)
-                    _Camera.DirectShowLogFilepath = _DirectShowLogFilepath;
-            }
-        }
-
-
-        #if USE_D3D
-        /// <summary>
-        /// Gets a value that determines whether GDI or Direct3D is used for drawing over mixer image.
-        /// </summary> 
-        /// <value>Set to true to use GDI for drawing over mixer image, or false to use Direct3D.</value>
-        public bool UseGDI
-        {
-            get
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                return _Camera.UseGDI;
-            }
-            set
-            {
-                _ThrowIfCameraWasNotCreated();
-
-                _Camera.UseGDI = value;
-            }
-        }
-        #endif
-
+        
 
         #endregion
 
@@ -370,79 +181,6 @@ namespace Camera_NET
         // ====================================================================
 
         #region Property pages (various settings dialogs)
-
-        /// <summary>
-        /// Displays property page for device.
-        /// </summary>
-        /// <param name="moniker">Moniker (device identification) of camera.</param>
-        /// <param name="hwndOwner">The window handler for to make it parent of property page.</param>
-        /// <seealso cref="Moniker"/>
-        public static void DisplayPropertyPage_Device(IMoniker moniker, IntPtr hwndOwner)
-        {
-            Camera.DisplayPropertyPage_Device(moniker, hwndOwner);
-        }
-
-        /// <summary>
-        /// Displays property page for crossbar if it's available.
-        /// </summary>
-        /// <param name="hwndOwner">The window handler for to make it parent of property page.</param>
-        /// <seealso cref="CrossbarAvailable"/>
-        public void DisplayPropertyPage_Crossbar(IntPtr hwndOwner)
-        {
-            _ThrowIfCameraWasNotCreated();
-
-            _Camera.DisplayPropertyPage_Crossbar(hwndOwner);
-        }
-
-        /// <summary>
-        /// Displays property page for capture filter.
-        /// </summary>
-        /// <param name="hwndOwner">The window handler for to make it parent of property page.</param>
-        public void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
-        {
-            _ThrowIfCameraWasNotCreated();
-
-            _Camera.DisplayPropertyPage_CaptureFilter(hwndOwner);
-        }
-
-        /// <summary>
-        /// Displays property page for filter's pin output.
-        /// </summary>
-        /// <param name="hwndOwner">The window handler for to make it parent of property page.</param>
-        public void DisplayPropertyPage_SourcePinOutput(IntPtr hwndOwner)
-        {
-            _ThrowIfCameraWasNotCreated();
-
-            _Camera.DisplayPropertyPage_SourcePinOutput(hwndOwner);
-        }
-
-        #endregion
-
-        // ====================================================================
-
-        #region TV Mode
-
-        /// <summary>
-        /// Sets TV Mode for device.
-        /// </summary>
-        /// <param name="mode">TV Mode to set (analog video standard).</param>
-        public void SetTVMode(AnalogVideoStandard mode)
-        {
-            _ThrowIfCameraWasNotCreated();
-            
-            _Camera.SetTVMode(mode);
-        }
-
-        /// <summary>
-        /// Gets TV Mode of device.
-        /// </summary>
-        /// <returns>TV Mode of device (analog video standard)</returns>
-        public AnalogVideoStandard GetTVMode()
-        {
-            _ThrowIfCameraWasNotCreated();
-
-            return _Camera.GetTVMode();
-        }
 
         #endregion
 
@@ -506,7 +244,7 @@ namespace Camera_NET
         {
             _ThrowIfCameraWasNotCreated();
 
-            _Camera.ZoomToRect(ZoomRect);
+            //_Camera.ZoomToRect(ZoomRect);
         }
 
         #endregion
@@ -520,7 +258,7 @@ namespace Camera_NET
         /// </summary>
         /// <param name="iDeviceIndex">Index (Zero-based) in list of available devices with VideoInputDevice filter category.</param>
         /// <returns>Moniker (device identification) of device</returns>
-        public static IMoniker GetDeviceMoniker(int iDeviceNum)
+        public static RSDevice GetDeviceMoniker(int iDeviceNum)
         {
             return Camera.GetDeviceMoniker(iDeviceNum);
         }
@@ -530,7 +268,7 @@ namespace Camera_NET
         /// </summary>
         /// <param name="moniker">Moniker (device identification) of camera.</param>
         /// <returns>List of resolutions with RGB color system of device</returns>
-        public static ResolutionList GetResolutionList(IMoniker moniker)
+        public static ResolutionList GetResolutionList(RSDevice moniker)
         {
             return Camera.GetResolutionList(moniker);
         }
@@ -547,12 +285,7 @@ namespace Camera_NET
         /// Camera object (user control is a wrapper for it).
         /// </summary>
         private Camera _Camera = null;
-
-        /// <summary>
-        /// Log file path for DirectShow (should be saved longer than _Camera lives).
-        /// </summary>
-        private string _DirectShowLogFilepath = string.Empty;
-
+        
         /// <summary>
         /// Message for exception when functions are called if camera not being created.
         /// </summary>

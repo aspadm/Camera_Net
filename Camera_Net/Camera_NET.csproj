@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="12.0">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <ProductVersion>9.0.30729</ProductVersion>
@@ -28,8 +28,9 @@
     <UpgradeBackupLocation>
     </UpgradeBackupLocation>
     <OldToolsVersion>3.5</OldToolsVersion>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -68,6 +69,7 @@
     <WarningLevel>4</WarningLevel>
     <DebugType>full</DebugType>
     <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>bin\Release\</OutputPath>
@@ -91,17 +93,42 @@
     <WarningLevel>4</WarningLevel>
     <DebugType>none</DebugType>
     <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;USING_NET20</DefineConstants>
+    <BaseAddress>285212672</BaseAddress>
+    <FileAlignment>4096</FileAlignment>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <BaseAddress>285212672</BaseAddress>
+    <Optimize>true</Optimize>
+    <FileAlignment>4096</FileAlignment>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore" />
     <Reference Include="System">
       <Name>System</Name>
     </Reference>
-    <Reference Include="System.Data" />
     <Reference Include="System.Drawing">
       <Name>System.Drawing</Name>
     </Reference>
     <Reference Include="System.Windows.Forms">
       <Name>System.Windows.Forms</Name>
+    </Reference>
+    <Reference Include="Intel.Realsense">
+      <HintPath>lib\Intel.Realsense.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -111,20 +138,21 @@
     <Compile Include="Public\CameraControl.Designer.cs">
       <DependentUpon>CameraControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="Public\ResolutionList.cs" />
     <Compile Include="Internal\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Public\Camera.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Public\Resolution.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Public\ResolutionList.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Public\CameraChoice.cs" />
-    <Compile Include="Internal\Direct3DMixing.cs" />
-    <Compile Include="Internal\DirectXInterfaces.cs" />
     <Compile Include="Internal\NativeMethodes.cs" />
-    <Compile Include="Public\Resolution.cs" />
-    <Compile Include="Internal\SampleGrabberHelper.cs" />
-    <Compile Include="Public\VideoInput.cs" />
+    <Compile Include="Public\RSDevice.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -147,12 +175,6 @@
     <EmbeddedResource Include="Public\CameraControl.resx">
       <DependentUpon>CameraControl.cs</DependentUpon>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DirectShowLib\DirectShowLib-2010.csproj">
-      <Project>{CE009BFA-5EF6-4153-B2A1-2FA79698A9AE}</Project>
-      <Name>DirectShowLib-2010</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

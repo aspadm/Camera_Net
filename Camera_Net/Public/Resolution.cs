@@ -25,7 +25,6 @@ namespace Camera_NET
 {
     #region Using directives
     using System;
-    using System.Collections.Generic;
     #endregion
 
     /// <summary>
@@ -65,7 +64,7 @@ namespace Camera_NET
         {
             Resolution x = this;
 
-            if ( x == null)
+            if (x == null)
             {
                 if (y == null)
                     return 0; // If x is null and y is null, they're equal. 
@@ -117,7 +116,7 @@ namespace Camera_NET
                 return false;
 
             if (this.Height != other.Height ||
-                this.Width  != other.Width)
+                this.Width != other.Width)
                 return false;
 
             return true;

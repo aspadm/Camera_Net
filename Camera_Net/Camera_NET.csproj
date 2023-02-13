@@ -132,6 +132,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Internal\RSServing.cs" />
     <Compile Include="Public\CameraControl.cs">
       <SubType>UserControl</SubType>
     </Compile>

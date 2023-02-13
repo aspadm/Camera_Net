@@ -19,9 +19,6 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 #region Using directives
 
-using System;
-using System.Collections.Generic;
-using System.Windows.Forms;
 
 #endregion
 

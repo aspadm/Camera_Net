@@ -21,9 +21,9 @@ namespace VerySimple
 {
     #region Using directives
 
+    using Camera_NET;
     using System;
     using System.Windows.Forms;
-    using Camera_NET;
 
     #endregion
 
@@ -50,7 +50,7 @@ namespace VerySimple
             {
                 // Device moniker. It's like device id or handle.
                 // Run first camera if we have one
-                var camera_moniker = _CameraChoice.Devices[0];
+                var camera_moniker = _CameraChoice.Devices[1];
 
                 // Set selected camera to camera control with default resolution
                 cameraControl.SetCamera(camera_moniker, null);

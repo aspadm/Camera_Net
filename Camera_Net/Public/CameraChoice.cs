@@ -27,8 +27,8 @@ namespace Camera_NET
 {
     #region Using directives
 
-    using System;
     using Intel.RealSense;
+    using System;
 
     #endregion
 
@@ -60,9 +60,9 @@ namespace Camera_NET
 
             foreach (var dev in list)
             {
-                m_pCapDevices.Add(new RSDevice { DevicePath = dev.Info.GetInfo(CameraInfo.SerialNumber) + ":RGB", Name = dev.Info.GetInfo(CameraInfo.Name) + " RGB" , isIR = false, isLeft = false});
-                m_pCapDevices.Add(new RSDevice { DevicePath = dev.Info.GetInfo(CameraInfo.SerialNumber) + ":IR_left", Name = dev.Info.GetInfo(CameraInfo.Name) + " IR L", isIR = true, isLeft = true});
-                m_pCapDevices.Add(new RSDevice { DevicePath = dev.Info.GetInfo(CameraInfo.SerialNumber) + ":IR_right", Name = dev.Info.GetInfo(CameraInfo.Name) + " IR R", isIR = true, isLeft = false});
+                m_pCapDevices.Add(new RSDevice { Serial = dev.Info.GetInfo(CameraInfo.SerialNumber), Name = dev.Info.GetInfo(CameraInfo.Name) + " RGB", isIR = false, isLeft = false });
+                m_pCapDevices.Add(new RSDevice { Serial = dev.Info.GetInfo(CameraInfo.SerialNumber), Name = dev.Info.GetInfo(CameraInfo.Name) + " IR L", isIR = true, isLeft = true });
+                m_pCapDevices.Add(new RSDevice { Serial = dev.Info.GetInfo(CameraInfo.SerialNumber), Name = dev.Info.GetInfo(CameraInfo.Name) + " IR R", isIR = true, isLeft = false });
             }
         }
 

@@ -24,7 +24,6 @@ License along with this library. If not, see <http://www.gnu.org/licenses/>.
 #region Using directives
 
 using System.Reflection;
-using System.Runtime.CompilerServices;
 #endregion
 
 //
@@ -37,7 +36,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyCopyright("GNU Lesser General Public License v3.0 or later")]
 [assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]		
+[assembly: AssemblyCulture("")]
 
 [assembly: AssemblyVersion("1.1.1.0")]
 #if DEBUG

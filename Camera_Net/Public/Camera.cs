@@ -21,26 +21,19 @@ License along with this library. If not, see <http://www.gnu.org/licenses/>.
 
 #endregion
 
-using System.IO;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace Camera_NET
 {
     #region Using directives
 
+    // Use Intel.Realsense (Apache License 2.0)
+    using Intel.RealSense;
+    // Microsoft.Win32 is used for SystemEvents namespace
+    using Microsoft.Win32;
     using System;
     using System.Drawing;
     using System.Drawing.Imaging;
-    using System.Runtime.InteropServices;
     using System.Windows.Forms;
-    using System.Runtime.InteropServices.ComTypes;
-
-    // Microsoft.Win32 is used for SystemEvents namespace
-    using Microsoft.Win32;
-
-    // Use Intel.Realsense (Apache License 2.0)
-    using Intel.RealSense;
 
     #endregion
 
@@ -56,33 +49,34 @@ namespace Camera_NET
 
         #region Private members
 
-        private Pipeline _pipeline = null;
-        private Config _config = null;
-
         /// <summary>
         /// Private field. Use the public property <see cref="HostingControl"/> for access to this value.
         /// </summary>
-        private Control _HostingControl = null;
+        private Control _hostingControl = null;
 
         /// <summary>
-        /// Private field. Use the public property <see cref="RSPath"/> for access to this value.
+        /// Private field. Use the public property <see cref="RsPath"/> for access to this value.
         /// </summary>
-        private RSDevice _RSPath = null;
+        private RSDevice _rsPath = null;
 
         /// <summary>
         /// Private field. Use the public property <see cref="Resolution"/> for access to this value.
         /// </summary>
-        private Resolution _Resolution = new Resolution(1920, 1080);
+        private Resolution _resolution = new Resolution(1920, 1080);
 
         /// <summary>
         /// Private field. Use the public property <see cref="ResolutionList"/> for access to this value.
         /// </summary>
-        private ResolutionList _ResolutionList = new ResolutionList { new Resolution(1920, 1080) };
+        private ResolutionList _resolutionList = new ResolutionList { new Resolution(1920, 1080) };
 
         /// <summary>
         /// Private field. Use the public property <see cref="OutputVideoSize"/> for access to this value.
         /// </summary>
-        private Rectangle _OutputVideoSize;
+        private Rectangle _outputVideoSize;
+
+        private static readonly RsServing VideoRsServing = RsServing.Instance;
+        private int _streamIndex = -1;
+        private Bitmap _outputVideo = null;
 
         #endregion
 
@@ -93,14 +87,14 @@ namespace Camera_NET
         /// <summary>
         /// Private field. Was the graph built or not.
         /// </summary>
-        internal bool _bGraphIsBuilt = false;
+        internal bool BGraphIsBuilt = false;
 
         /// <summary>
         /// Private field. Were handlers added or not. Needed to remove delegates
         /// </summary>
-        internal bool _bHandlersAdded = false;
+        internal bool BHandlersAdded = false;
 
-        internal Timer _Timer = new Timer();
+        //internal Timer _Timer = new Timer();
 
         #endregion
 
@@ -112,34 +106,34 @@ namespace Camera_NET
         /// Gets a control that is used for hosting camera's output.
         /// </summary>
         public Control HostingControl
-        => _HostingControl;
+        => _hostingControl;
 
         /// <summary>
         /// Gets an identifier of camera.
         /// </summary>
-        public RSDevice RSPath => _RSPath;
+        public RSDevice RsPath => _rsPath;
 
         /// <summary>
         /// Gets or sets a resolution of camera's output.
         /// </summary>
-        /// <seealso cref="ResolutionListRGB"/>
+        /// <seealso cref="ResolutionListRgb"/>
         public Resolution Resolution
         {
-            get => _Resolution;
+            get => _resolution;
             set
             {
                 // Change of resolution is not allowed after graph's built
-                if (_bGraphIsBuilt)
+                if (BGraphIsBuilt)
                     throw new Exception(@"Change of resolution is not allowed after graph's built.");
-                _Resolution = value;
+                _resolution = value;
             }
         }
 
         /// <summary>
         /// Gets a list of available resolutions (in RGB format).
         /// </summary>        
-        public ResolutionList ResolutionListRGB => _ResolutionList;
-        
+        public ResolutionList ResolutionListRgb => _resolutionList;
+
         #endregion
 
         // ====================================================================
@@ -164,10 +158,11 @@ namespace Camera_NET
         /// <returns>Moniker (device identification) of device</returns>
         public static RSDevice GetDeviceMoniker(int iDeviceIndex)
         {
-            // TODO: list devices?
-            throw new Exception(@"No video capture devices found at that index.");
-
-            return new RSDevice();
+            if (iDeviceIndex >= VideoRsServing.Devices.Length)
+            {
+                throw new Exception(@"No video capture devices found at that index.");
+            }
+            return VideoRsServing.Devices[iDeviceIndex];
         }
 
         /// <summary>
@@ -204,8 +199,8 @@ namespace Camera_NET
         /// <seealso cref="RSDevice"/>
         public void Initialize(Control hControl, RSDevice cam)
         {
-            _RSPath = cam ?? throw new Exception(@"Camera's id should be set.");
-            _HostingControl = hControl ?? throw new Exception(@"Hosting control should be set.");
+            _rsPath = cam ?? throw new Exception(@"Camera's id should be set.");
+            _hostingControl = hControl ?? throw new Exception(@"Hosting control should be set.");
         }
 
         /// <summary>
@@ -229,14 +224,13 @@ namespace Camera_NET
         /// </summary>
         public void CloseAll()
         {
-            _bGraphIsBuilt = false;
+            BGraphIsBuilt = false;
 
             // stop rendering
             // TODO: stop
             StopGraph();
 
-
-            if (_bHandlersAdded)
+            if (BHandlersAdded)
             {
                 RemoveHandlers();
             }
@@ -251,22 +245,16 @@ namespace Camera_NET
         /// </summary>
         public void BuildGraph()
         {
-            _bGraphIsBuilt = false;
+            BGraphIsBuilt = false;
 
             try
             {
-                _pipeline = new Pipeline();
-
                 SetSourceParams();
                 UpdateOutputVideoSize();
-
-                if (_config == null) _config = new Config();
-                _config.EnableStream(_RSPath.isIR ? Stream.Infrared : Stream.Color, _RSPath.isIR ? _RSPath.isLeft ? 1 : 2 : 0, 1920, 1080, _RSPath.isIR ? Format.Y8 : Format.Bgr8, 15);
-
                 AddHandlers();
 
                 // -------------------------------------------------------
-                _bGraphIsBuilt = true;
+                BGraphIsBuilt = true;
                 // -------------------------------------------------------
             }
             catch
@@ -281,20 +269,18 @@ namespace Camera_NET
         /// </summary>
         public void RunGraph()
         {
-            //var graph_guilder = (ICaptureGraphBuilder2)new CaptureGraphBuilder2();
-            //int hr = graph_guilder.RenderStream(PinCategory.Preview, MediaType.Video, DX.CaptureFilter, null, DX.VMRenderer);
-            //DsError.ThrowExceptionForHR(hr);
-
             // TODO: run
-            PipelineProfile pp = _pipeline.Start(_config);
-            _Timer.Interval = 1000 / 14;
-            _Timer.Tick += _Timer_Tick;
-            _Timer.Start();
+            _streamIndex = VideoRsServing.Start(_rsPath);
         }
 
-        private void _Timer_Tick(object sender, EventArgs e)
+        private void GotFrame(object sender, int e)
         {
-            _HostingControl.Invalidate();
+            if (_streamIndex == -1) return;
+            if (_streamIndex != e) return;
+
+            _outputVideo = GotImage(VideoRsServing.GetFrame(_streamIndex));
+
+            _hostingControl.Invalidate();
         }
 
         private Bitmap GotImage(VideoFrame frame)
@@ -303,7 +289,7 @@ namespace Camera_NET
 
             frame.CopyTo(outBuffer);
 
-            if (_RSPath.isIR) // Convert grayscale to RGB
+            if (_rsPath.isIR) // Convert grayscale to RGB
             {
                 for (int i = frame.Width * frame.Height - 1; i >= 0; i--)
                 {
@@ -332,10 +318,8 @@ namespace Camera_NET
         public void StopGraph()
         {
             // TODO: stop
-            _Timer?.Stop();
-            if (_pipeline == null) return;
-            if (!_bGraphIsBuilt) return;
-            _pipeline.Stop();
+            if (!BGraphIsBuilt) return;
+            VideoRsServing.Stop();
         }
         #endregion
 
@@ -358,13 +342,12 @@ namespace Camera_NET
         /// <seealso cref="SnapshotOutputImage"/>
         public Bitmap SnapshotSourceImage()
         {
-            Bitmap bitmap = GotImage(_pipeline.WaitForFrames().InfraredFrame);
-
-            var bitmap_clone = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), PixelFormat.Format24bppRgb);
-
-            bitmap.Dispose();
-
-            return bitmap_clone;
+            if (!BGraphIsBuilt || _outputVideo == null) throw new Exception("Video was not initialized");
+            lock (_outputVideo)
+            {
+                return _outputVideo.Clone(new Rectangle(0, 0, _outputVideo.Width, _outputVideo.Height),
+                    PixelFormat.Format24bppRgb);
+            }
         }
 
         #endregion
@@ -398,15 +381,16 @@ namespace Camera_NET
         /// <seealso cref="HostingControl"/>
         private void AddHandlers()
         {
-            if (_HostingControl == null)
+            if (_hostingControl == null)
                 throw new Exception("Can't add handlers. Hosting control is not set.");
 
             // Add handlers for VMR purpose
-            _HostingControl.Paint += new PaintEventHandler(HostingControl_Paint); // for WM_PAINT
-            _HostingControl.Resize += new EventHandler(HostingControl_ResizeMove); // for WM_SIZE
-            _HostingControl.Move += new EventHandler(HostingControl_ResizeMove); // for WM_MOVE
+            _hostingControl.Paint += new PaintEventHandler(HostingControl_Paint); // for WM_PAINT
+            _hostingControl.Resize += new EventHandler(HostingControl_ResizeMove); // for WM_SIZE
+            _hostingControl.Move += new EventHandler(HostingControl_ResizeMove); // for WM_MOVE
             SystemEvents.DisplaySettingsChanged += new EventHandler(SystemEvents_DisplaySettingsChanged); // for WM_DISPLAYCHANGE
-            _bHandlersAdded = true;
+            VideoRsServing.GotFrame += new EventHandler<int>(GotFrame);
+            BHandlersAdded = true;
         }
 
         /// <summary>
@@ -415,15 +399,16 @@ namespace Camera_NET
         /// <seealso cref="HostingControl"/>
         private void RemoveHandlers()
         {
-            if (_HostingControl == null)
+            if (_hostingControl == null)
                 throw new Exception("Can't remove handlers. Hosting control is not set.");
 
             // remove handlers when they are no more needed
-            _bHandlersAdded = false;
-            _HostingControl.Paint -= new PaintEventHandler(HostingControl_Paint);
-            _HostingControl.Resize -= new EventHandler(HostingControl_ResizeMove);
-            _HostingControl.Move -= new EventHandler(HostingControl_ResizeMove);
+            BHandlersAdded = false;
+            _hostingControl.Paint -= new PaintEventHandler(HostingControl_Paint);
+            _hostingControl.Resize -= new EventHandler(HostingControl_ResizeMove);
+            _hostingControl.Move -= new EventHandler(HostingControl_ResizeMove);
             SystemEvents.DisplaySettingsChanged -= new EventHandler(SystemEvents_DisplaySettingsChanged);
+            VideoRsServing.GotFrame += new EventHandler<int>(GotFrame);
         }
 
 
@@ -435,33 +420,17 @@ namespace Camera_NET
         {
             // TODO: paint
 
-            if (!_bGraphIsBuilt)
+            if (!BGraphIsBuilt)
                 return; // Do nothing before graph was built
 
-            if (_HostingControl == null) return;
+            if (_hostingControl == null) return;
 
-            //Bitmap bmp = new Bitmap(10, 10);
-            //lock (e.Graphics)
-            {
-                //IntPtr hdc = e.Graphics.GetHdc();
-                try
+            e.Graphics.Clear(Color.Black);
+            if (_outputVideo != null)
+                lock (_outputVideo)
                 {
-                    // TODO: real paint
-                    e.Graphics.Clear(Color.Black);
-                    var frames = _pipeline.WaitForFrames();
-                    Bitmap bmp = GotImage(_RSPath.isIR ? frames.InfraredFrame : frames.ColorFrame  );
-                    e.Graphics.DrawImage(bmp, _OutputVideoSize);
-
-
+                    e.Graphics.DrawImage(_outputVideo, _outputVideoSize);
                 }
-                catch (System.Runtime.InteropServices.COMException ex)
-                {
-                }
-                finally
-                {
-                    //e.Graphics.ReleaseHdc(hdc);
-                }
-            }
         }
 
         /// <summary>
@@ -470,12 +439,12 @@ namespace Camera_NET
         /// <seealso cref="HostingControl"/>
         private void HostingControl_ResizeMove(object sender, EventArgs e)
         {
-            if (_HostingControl == null)
+            if (_hostingControl == null)
                 return;
 
             //int hr = DX.WindowlessCtrl.SetVideoPosition(null, DsRect.FromRectangle(_HostingControl.ClientRectangle));
 
-            if (!_bGraphIsBuilt)
+            if (!BGraphIsBuilt)
                 return; // Do nothing before graph was built
 
             UpdateOutputVideoSize();
@@ -485,7 +454,7 @@ namespace Camera_NET
             {
                 OutputVideoSizeChanged(sender, e);
             }
-            
+
             //// Get the bitmap with alpha transparency
             //alphaBitmap = BitmapGenerator.GenerateAlphaBitmap(p.Width, p.Height);
 
@@ -500,7 +469,7 @@ namespace Camera_NET
         /// </summary>
         private void SystemEvents_DisplaySettingsChanged(object sender, EventArgs e)
         {
-            if (!_bGraphIsBuilt)
+            if (!BGraphIsBuilt)
                 return; // Do nothing before graph was built
 
             // TODO: update display
@@ -529,20 +498,20 @@ namespace Camera_NET
         public PointF ConvertWinToNorm(PointF point)
         {
 
-            int window_width = _HostingControl.ClientRectangle.Width;
-            int window_height = _HostingControl.ClientRectangle.Height;
+            int windowWidth = _hostingControl.ClientRectangle.Width;
+            int windowHeight = _hostingControl.ClientRectangle.Height;
 
-            float[] video_rect =
+            float[] videoRect =
             {
-                (window_width - _OutputVideoSize.Width) / 2.0f,
-                (window_height - _OutputVideoSize.Height) / 2.0f,
-                window_width - (window_width - _OutputVideoSize.Width) / 2.0f,
-                window_height - (window_height - _OutputVideoSize.Height) / 2.0f
+                (windowWidth - _outputVideoSize.Width) / 2.0f,
+                (windowHeight - _outputVideoSize.Height) / 2.0f,
+                windowWidth - (windowWidth - _outputVideoSize.Width) / 2.0f,
+                windowHeight - (windowHeight - _outputVideoSize.Height) / 2.0f
             };
 
             return new PointF(
-                    (point.X - video_rect[0]) / (video_rect[2] - video_rect[0]),
-                    (point.Y - video_rect[1]) / (video_rect[3] - video_rect[1])
+                    (point.X - videoRect[0]) / (videoRect[2] - videoRect[0]),
+                    (point.Y - videoRect[1]) / (videoRect[3] - videoRect[1])
                 );
         }
 
@@ -555,48 +524,48 @@ namespace Camera_NET
         /// </summary>
         private void UpdateOutputVideoSize()
         {
-            int w = _HostingControl.ClientRectangle.Width;
-            int h = _HostingControl.ClientRectangle.Height;
+            int w = _hostingControl.ClientRectangle.Width;
+            int h = _hostingControl.ClientRectangle.Height;
 
-            int video_width = _Resolution.Width;
-            int video_height = _Resolution.Height;
+            int videoWidth = _resolution.Width;
+            int videoHeight = _resolution.Height;
 
             // Check size of video data, to save original ratio
-            int window_width = _HostingControl.ClientRectangle.Width;
-            int window_height = _HostingControl.ClientRectangle.Height;
+            int windowWidth = _hostingControl.ClientRectangle.Width;
+            int windowHeight = _hostingControl.ClientRectangle.Height;
 
-            if (window_width == 0 || window_height == 0)
+            if (windowWidth == 0 || windowHeight == 0)
             {
                 throw new Exception(@"Incorrect window size (zero).");
             }
-            if (video_width == 0 || video_height == 0)
+            if (videoWidth == 0 || videoHeight == 0)
             {
                 throw new Exception(@"Incorrect video size (zero).");
             }
 
             Size result;
 
-            double ratio_video = (double)video_width / video_height;
-            double ratio_window = (double)window_width / window_height;
+            double ratioVideo = (double)videoWidth / videoHeight;
+            double ratioWindow = (double)windowWidth / windowHeight;
 
-            int real_video_width = Convert.ToInt32(Math.Round(window_height * ratio_video));
-            int real_video_height = Convert.ToInt32(Math.Round(window_width / ratio_video));
+            int realVideoWidth = Convert.ToInt32(Math.Round(windowHeight * ratioVideo));
+            int realVideoHeight = Convert.ToInt32(Math.Round(windowWidth / ratioVideo));
 
-            if (ratio_video <= ratio_window)
+            if (ratioVideo <= ratioWindow)
             {
-                video_width = Math.Min(window_width, real_video_width); // Check it's not bigger than window's size
-                video_height = window_height;
+                videoWidth = Math.Min(windowWidth, realVideoWidth); // Check it's not bigger than window's size
+                videoHeight = windowHeight;
             }
             else
             {
-                video_width = window_width;
-                video_height = Math.Min(window_height, real_video_height); // Check it's not bigger than window's size
+                videoWidth = windowWidth;
+                videoHeight = Math.Min(windowHeight, realVideoHeight); // Check it's not bigger than window's size
             }
 
-            _OutputVideoSize.Width = video_width;
-            _OutputVideoSize.Height = video_height;
-            _OutputVideoSize.X = (window_width - video_width) >> 1;
-            _OutputVideoSize.Y = (window_height - video_height) >> 1;
+            _outputVideoSize.Width = videoWidth;
+            _outputVideoSize.Height = videoHeight;
+            _outputVideoSize.X = (windowWidth - videoWidth) >> 1;
+            _outputVideoSize.Y = (windowHeight - videoHeight) >> 1;
         }
 
         #endregion

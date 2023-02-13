@@ -28,7 +28,6 @@ namespace Camera_NET
     using System;
     using System.Drawing;
     using System.Windows.Forms;
-    using System.Runtime.InteropServices.ComTypes;
 
     #endregion
 
@@ -40,7 +39,7 @@ namespace Camera_NET
     /// <author> free5lot (free5lot@yandex.ru) </author>
     /// <version> 2013.10.15 </version>
     public partial class CameraControl : UserControl
-    {       
+    {
         // ====================================================================
 
         #region Public Main
@@ -127,7 +126,7 @@ namespace Camera_NET
             {
                 _ThrowIfCameraWasNotCreated();
 
-                return _Camera.RSPath;
+                return _Camera.RsPath;
             }
         }
 
@@ -160,10 +159,10 @@ namespace Camera_NET
             {
                 _ThrowIfCameraWasNotCreated();
 
-                return _Camera.ResolutionListRGB;
+                return _Camera.ResolutionListRgb;
             }
         }
-        
+
 
         #endregion
 
@@ -276,7 +275,7 @@ namespace Camera_NET
         #endregion
 
         // ====================================================================
-        
+
         #region Private stuff
 
         #region Private members
@@ -285,7 +284,7 @@ namespace Camera_NET
         /// Camera object (user control is a wrapper for it).
         /// </summary>
         private Camera _Camera = null;
-        
+
         /// <summary>
         /// Message for exception when functions are called if camera not being created.
         /// </summary>

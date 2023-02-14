@@ -134,6 +134,20 @@ namespace Camera_NET
         /// </summary>        
         public ResolutionList ResolutionListRgb => _resolutionList;
 
+        public int MinExp => VideoRsServing.MinExp;
+        public int MaxExp => VideoRsServing.MaxExp;
+
+        public int Exp
+        {
+            get => VideoRsServing.Exp;
+            set => VideoRsServing.Exp = value;
+        }
+
+        public void PushExp(int exp)
+        {
+            VideoRsServing.PushExp(exp);
+        }
+
         #endregion
 
         // ====================================================================
@@ -307,8 +321,8 @@ namespace Camera_NET
 
             //Copy the pixel data into the bitmap structure
             System.Runtime.InteropServices.Marshal.Copy(outBuffer, 0, pixelStartAddress, outBuffer.Length);
-
             bmp.UnlockBits(picData);
+
             return bmp;
         }
 
@@ -542,8 +556,6 @@ namespace Camera_NET
             {
                 throw new Exception(@"Incorrect video size (zero).");
             }
-
-            Size result;
 
             double ratioVideo = (double)videoWidth / videoHeight;
             double ratioWindow = (double)windowWidth / windowHeight;

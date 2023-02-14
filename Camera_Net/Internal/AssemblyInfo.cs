@@ -42,7 +42,7 @@ using System.Reflection;
 #if DEBUG
 [assembly: AssemblyProduct("Debug Version")]
 #else
-[assembly : AssemblyProduct("Release Version")]
+[assembly: AssemblyProduct("Release Version")]
 #endif
 
 [assembly: AssemblyDelaySign(false)]

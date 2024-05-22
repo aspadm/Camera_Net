@@ -55,6 +55,16 @@ namespace Camera_NET
         public void UpdateDeviceList()
         {
             m_pCapDevices = new List<DsDevice>(DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice));
+
+            foreach (DsDevice device in m_pCapDevices)
+            {
+                try
+                {
+                    ResolutionList resolutionList = Camera.GetResolutionList(device.Mon);
+                    device.Name += " " + resolutionList[0].ToString();
+                }
+                catch { }
+            }
         }
 
         /// <summary>

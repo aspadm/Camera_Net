@@ -85,6 +85,10 @@ namespace Camera_NET
             {
                 _Camera.Resolution = resolution;
             }
+            else
+            {
+                _Camera.Resolution = Camera.GetResolutionList(moniker)[0];
+            }
 
             // Initialize
             _Camera.Initialize(this, moniker);

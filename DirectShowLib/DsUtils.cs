@@ -1217,6 +1217,8 @@ namespace DirectShowLib
                 }
                 return m_Name;
             }
+            set
+            { m_Name = value; }
         }
 
         /// <summary>

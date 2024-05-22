@@ -50,6 +50,9 @@ namespace Camera_NET
                 return false;
 
             this.Add(item);
+            // We want to use higher res if possible
+            this.Sort();
+            this.Reverse();
             return true;
         }
     }
